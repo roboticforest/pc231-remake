@@ -23,6 +23,8 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 // TODO: Add an endianness check? Do we care for this project?
 union Word_12Bit {
@@ -79,43 +81,33 @@ class Memory {
     }
 };
 
-int main() {
+bool loadProgram(Memory& memory) {
+    int i = 0;
+    unsigned int value = 0;
+    bool validProgram = true;
 
-    Memory mainMemory(256);
-    std::string hexTriple;
-    unsigned int i = 0;
-    bool readingProgram = true;
     std::cout << "LOAD PROGRAM:" << std::endl;
-
-    // TODO: While this is a bit better, (sometime when you're not about to fall asleep at your
-    //  keyboard) replace this with a character by character parse like you're used to doing.
-    //  OH! And you can also add in a search for "END" along with the EOF character.
-    while (readingProgram) {
-        std::cin >> hexTriple;
-        if (!std::cin.good()) {
-            if (std::cin.eof()) {
-                std::cout << "PROGRAM LOADED." << std::endl;
-                readingProgram = false;
-            }
-            else {
-                std::cout << "READ ERROR." << std::endl;
-                std::cin.clear();  // REMEMBER! You have to clear the error state before you can do ANYTHING with the stream.
-                std::cin.ignore();  // With the error state cleared, you can now ignore the offending character.
-                continue;
-            }
+    std::cin >> std::hex;
+    while (std::cin >> value) {
+        if (value > 0xfff || i >= memory.capacity()) {
+            validProgram = false;
+            break;
         }
-        if (hexTriple.length() == 3) {
-            try {
-                mainMemory[i].raw_data = std::stoi(hexTriple, nullptr, 16);
-            }
-            catch (const std::invalid_argument& exception) {
-                std::cout << "BAD HEX TRIPLE. SKIPPING WORD." << std::endl;
-                continue;
-            }
-            i = (i + 1) % mainMemory.capacity();
-        }
+        memory[i].raw_data = value;
+        ++i;
     }
+    if (std::cin.fail() && !std::cin.eof()) { validProgram = false; }
+    return validProgram;
+}
 
+int main() {
+    Memory mainMemory(256);
+
+    if (!loadProgram(mainMemory)) {
+        std::cout << "INVALID PROGRAM" << std::endl;
+        return -1;
+    }
+    
     return 0;
 }
 
